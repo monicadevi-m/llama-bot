@@ -8,7 +8,7 @@ import pandas as pd
 # Initialize model
 @st.cache_resource
 def load_model():
-    model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # Much smaller, works on Streamlit Cloud
+    model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name)
     return model, tokenizer
