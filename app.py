@@ -1,25 +1,19 @@
 import streamlit as st
-from llama_cpp import Llama
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import os
 from datetime import datetime
 import pandas as pd
-from huggingface_hub import hf_hub_download
 
-# Initialize Llama model
+# Initialize model
 @st.cache_resource
 def load_model():
-    # Download model directly from Hugging Face
-    model_path = hf_hub_download(
-        repo_id="TheBloke/Llama-2-7B-Chat-GGML",
-        filename="llama-2-7b-chat.ggmlv3.q4_0.bin"
-    )
-    return Llama(
-        model_path=model_path,
-        n_ctx=2048,
-        n_threads=4
-    )
+    model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # Much smaller, works on Streamlit Cloud
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    return model, tokenizer
 
-llm = load_model()
+model, tokenizer = load_model()
 
 # Page config
 st.set_page_config(page_title="AI Friend", page_icon="🤝")
@@ -61,13 +55,21 @@ if prompt := st.chat_input("Share your thoughts..."):
     {conversation_history}
     """
 
-    response = llm.create_completion(
-        f"{system_prompt}\nUser: {prompt}\nAssistant:",
-        max_tokens=256,
-        stop=["User:", "\n"],
-        temperature=0.7
-    )
-    bot_response = response['choices'][0]['text'].strip()
+    # Format input
+    input_text = f"{system_prompt}\nUser: {prompt}\nAssistant:"
+    inputs = tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
+    
+    # Generate response
+    with torch.no_grad():
+        outputs = model.generate(
+            inputs["input_ids"],
+            max_length=256,
+            pad_token_id=tokenizer.eos_token_id,
+            temperature=0.7
+        )
+    
+    bot_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    bot_response = bot_response.split("Assistant:")[-1].strip()
 
     # Display bot response
     st.session_state.messages.append({"role": "assistant", "content": bot_response})
