@@ -10,10 +10,20 @@ import pandas as pd
 def load_model():
     model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype=torch.float32,  # Use float32 for CPU compatibility
+        low_cpu_mem_usage=True
+    )
+    model.eval()  # Set to evaluation mode
     return model, tokenizer
 
-model, tokenizer = load_model()
+# Load model with error handling
+try:
+    model, tokenizer = load_model()
+except Exception as e:
+    st.error(f"Error loading model: {e}")
+    st.stop()
 
 # Page config
 st.set_page_config(page_title="AI Friend", page_icon="🤝")
