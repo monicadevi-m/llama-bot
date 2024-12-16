@@ -4,19 +4,37 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import os
 from datetime import datetime
 import pandas as pd
+from huggingface_hub import hf_hub_download
 
 # Initialize model
 @st.cache_resource
 def load_model():
-    model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch.float32,  # Use float32 for CPU compatibility
-        low_cpu_mem_usage=True
-    )
-    model.eval()  # Set to evaluation mode
-    return model, tokenizer
+    try:
+        print("Downloading model...")
+        # Download model files
+        model_path = hf_hub_download(
+            repo_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            filename="config.json"
+        )
+        model_dir = os.path.dirname(model_path)
+        
+        # Initialize tokenizer and model
+        tokenizer = AutoTokenizer.from_pretrained(
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            cache_dir=model_dir
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True,
+            cache_dir=model_dir
+        )
+        model.eval()
+        print("Model loaded successfully!")
+        return model, tokenizer
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        raise
 
 # Load model with error handling
 try:
